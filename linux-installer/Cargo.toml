@@ -1,0 +1,20 @@
+[package]
+name = "adoptiummd"
+version = "0.1.0"
+edition = "2021"
+categories = ["command-line-utilities"]
+description = "An Adoptium Linux Installer and Manager"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+derive_more = "0.99.17"
+indicatif = "0.16.0"
+colored = "2.0.0"
+flate2 = "1.0.23"
+tar = "0.4.38"
+toml = "0.5.9"
+whoami = "1.2.1"
+clap = "3.1.18"
+url = "2.2"
+tokio = "1.18.2"
+thiserror = "1.0.31"
