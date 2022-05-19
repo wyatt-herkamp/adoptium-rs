@@ -1,6 +1,6 @@
+use reqwest::{Response, StatusCode};
 use std::num::ParseIntError;
 use std::string::ParseError;
-use reqwest::{Response, StatusCode};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -15,7 +15,6 @@ pub enum AdoptiumError {
     BadResponse(Response),
 }
 
-
 impl From<reqwest::Error> for AdoptiumError {
     fn from(err: reqwest::Error) -> AdoptiumError {
         AdoptiumError::ReqwestError(err)
@@ -27,8 +26,6 @@ impl From<ParseIntError> for AdoptiumError {
         AdoptiumError::Custom(format!("{}", err))
     }
 }
-
-
 
 impl From<serde_json::Error> for AdoptiumError {
     fn from(err: serde_json::Error) -> AdoptiumError {

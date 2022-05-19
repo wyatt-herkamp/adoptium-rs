@@ -1,33 +1,36 @@
-use serde::{Deserialize, Deserializer, Serializer};
+use crate::types::AdoptiumJvmImpl::HotSpot;
+use crate::types::HeapSize::Normal;
 use serde::Serialize;
-use std::str::FromStr;
+use serde::{Deserialize, Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+use strum::ParseError;
 use strum_macros::{Display, EnumString};
+
 #[cfg(feature = "time_converter")]
 pub mod time_converter {
     const FORMAT: &str = "%Y-%m-%dT%H:%M:%S%:z";
+
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let s = format!("{}", date.format(FORMAT));
         serializer.serialize_str(&s)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         Utc.datetime_from_str(&s, FORMAT)
             .map_err(serde::de::Error::custom)
     }
 }
-
-
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
@@ -37,12 +40,17 @@ pub enum CLib {
     GLIBC,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum AdoptiumJvmImpl {
-    HotSpot
+    HotSpot,
+}
+
+impl Default for AdoptiumJvmImpl {
+    fn default() -> Self {
+        HotSpot
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
@@ -53,6 +61,11 @@ pub enum HeapSize {
     Large,
 }
 
+impl Default for HeapSize {
+    fn default() -> Self {
+        Normal
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
@@ -65,6 +78,11 @@ pub enum Project {
     Shenandoah,
 }
 
+impl Default for Project {
+    fn default() -> Self {
+        Project::JDK
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
@@ -78,6 +96,11 @@ pub enum ImageType {
     Sources,
 }
 
+impl Default for ImageType {
+    fn default() -> Self {
+        ImageType::JDK
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 pub enum ReleaseType {
@@ -88,7 +111,8 @@ pub enum ReleaseType {
     #[strum(serialize = "ga")]
     EarlyAccess,
 }
-impl Default for ReleaseType{
+
+impl Default for ReleaseType {
     fn default() -> Self {
         ReleaseType::GeneralAvailability
     }
@@ -101,12 +125,11 @@ pub enum Vendor {
     Eclipse,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum Architecture {
-    #[strum(serialize = "x64", serialize = "x86-64")]
+    #[strum(serialize = "x64", serialize = "x86_64")]
     X64,
     X86,
     X32,
@@ -122,7 +145,12 @@ pub enum Architecture {
 impl Default for Architecture {
     fn default() -> Self {
         use std::str::FromStr;
-        Architecture::from_str(std::env::consts::ARCH).unwrap()
+        match Architecture::from_str(std::env::consts::ARCH) {
+            Ok(value) => value,
+            Err(error) => {
+                panic!("Unsupported Architecture {}", std::env::consts::ARCH)
+            }
+        }
     }
 }
 
@@ -151,7 +179,6 @@ pub enum SortOrder {
     Ascending,
 }
 
-
 impl Default for OS {
     fn default() -> Self {
         use std::str::FromStr;
@@ -162,27 +189,24 @@ impl Default for OS {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct SystemProperties {
     pub os: OS,
-    pub arch: Architecture,
+    pub architecture: Architecture,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Sort {
-    pub order: SortOrder,
-    pub method: SortMethod,
+    pub sort_order: SortOrder,
+    pub sort_method: SortMethod,
     pub page: i64,
-    pub size: i64,
+    pub page_size: i64,
 }
-
-
-
 
 impl Default for Sort {
     fn default() -> Self {
         Sort {
-            order: SortOrder::Descending,
-            method: SortMethod::Default,
+            sort_order: SortOrder::Descending,
+            sort_method: SortMethod::Default,
             page: 0,
-            size: 10,
+            page_size: 10,
         }
     }
 }

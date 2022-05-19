@@ -1,5 +1,5 @@
 [workspace]
 resolver = "2"
 members = [
-"adoptium-api", "linux-installer"
+    "adoptium_api", "linux-installer"
 ]

@@ -6,15 +6,32 @@ categories = ["command-line-utilities"]
 description = "An Adoptium Linux Installer and Manager"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
+[[bin]]
+name = "adoptiummd"
+path = "bin/main.rs"
+
 [dependencies]
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
+adoptium_api = { path = "../adoptium_api", features = ["time_converter"] }
 derive_more = "0.99.17"
-indicatif = "0.16.0"
+chrono = "0.4.19"
+indicatif = "0.16.2"
 colored = "2.0.0"
-flate2 = "1.0.23"
-tar = "0.4.38"
 toml = "0.5.9"
 whoami = "1.2.1"
-clap = "3.1.18"
+clap = { version = "3.1.18", features = ["derive"] }
 url = "2.2"
 tokio = "1.18.2"
+tempfile = "3.3.0"
+async-compression = { version = "0.3.14", features = ["gzip", "tokio"] }
+tokio-tar = "0.3.0"
+futures-util = "0.3.21"
+
+tokio-stream = { version = "0.1.8", features = ["fs"] }
 thiserror = "1.0.31"
+bytes = "1.1.0"
+reqwest = { version = "0.11.10", features = ["stream"] }
+[features]
+mock_commands = []
