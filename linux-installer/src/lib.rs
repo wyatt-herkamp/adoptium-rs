@@ -2,7 +2,7 @@ use crate::config::{get_config_directory, InstallConfig, Settings};
 use crate::error::InstallerError;
 
 use std::path::PathBuf;
-use tokio::fs::OpenOptions;
+use tokio::fs::{create_dir_all, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
@@ -65,7 +65,11 @@ impl LinuxInstaller {
         return false;
     }
     pub async fn add_install(&mut self, config: InstallConfig) -> Result<(), InstallerError> {
-        let install_loc = get_config_directory().join("installs").join(format!("{}.toml", &config));
+        let parents = get_config_directory().join("installs");
+        if !parents.exists() {
+            create_dir_all(&parents).await?;
+        }
+        let install_loc = parents.join(format!("{}.toml", &config));
         let mut file = OpenOptions::new()
             .create(true)
             .write(true)
@@ -80,11 +84,13 @@ impl LinuxInstaller {
         Ok(())
     }
 }
+
 #[cfg(feature = "mock_commands")]
 async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
     println!("Imagine Running {:?}", command);
     Ok(0)
 }
+
 #[cfg(not(feature = "mock_commands"))]
 async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
     Ok(command.spawn()?.wait().await?.code().unwrap_or(1) as u8)

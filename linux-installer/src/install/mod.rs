@@ -55,7 +55,6 @@ pub async fn execute(
         })
         .execute()
         .await?;
-    println!("{}", serde_json::to_string_pretty(&request).unwrap());
     let mut release = request.remove(0);
     let binary = release.binaries.remove(0);
     let download_link = binary.package.link;
