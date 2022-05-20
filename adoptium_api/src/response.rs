@@ -70,14 +70,17 @@ impl PartialOrd for VersionData {
 }
 
 impl Ord for VersionData {
-
     fn cmp(&self, other: &Self) -> Ordering {
         let values = vec![(self.major, other.major), (self.minor, other.minor), (self.security, other.security), (self.build, other.build)];
         for (a, b) in values {
-            if a > b {
-                return Greater;
-            } else if a < b {
-                return Less;
+            match a.cmp(&b) {
+                Less => {
+                    return Less;
+                }
+                Greater => {
+                    return Greater;
+                }
+                _ => {}
             }
         }
         Equal
@@ -97,7 +100,7 @@ pub mod version_test {
                            VersionData::from((5, 5, 1, 5)),
                            VersionData::from((17, 0, 5, 1))];
         vec.sort();
-        println!("{}", Table::new(&vec).with(Style::ascii()).to_string());
+        println!("{}", Table::new(&vec).with(Style::ascii()));
     }
 }
 

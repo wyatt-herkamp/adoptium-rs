@@ -105,16 +105,15 @@ impl Default for UpdateAlternatives {
                 ("/usr/bin/javah", "javah").into(),
                 ("/usr/bin/javap", "javap").into(),
                 ("/usr/bin/javaws", "javaws").into(),
-            ]
-                .into(),
+            ],
         }
     }
 }
 
 pub fn get_config_directory() -> PathBuf {
     std::env::var("ADOPTIUM_DIR")
-        .map(|value| PathBuf::from(value))
-        .unwrap_or(PathBuf::from("/etc").join("adoptium"))
+        .map(PathBuf::from)
+        .unwrap_or_else(|_|PathBuf::from("/etc").join("adoptium"))
 }
 
 pub async fn get_installs() -> Result<Vec<(PathBuf, InstallConfig)>, InstallerError> {
@@ -156,7 +155,7 @@ pub async fn get_settings() -> Result<Option<Settings>, InstallerError> {
     }
     let value = tokio::fs::read_to_string(config).await?;
     toml::from_str(&value)
-        .map(|value| Some(value))
+        .map(Some)
         .map_err(InstallerError::from)
 }
 

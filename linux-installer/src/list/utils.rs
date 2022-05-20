@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use tabled::{Style, Table, Tabled};
+use tabled::{Tabled};
 
 #[derive(Tabled)]
 pub struct InstallTable<'a> {

@@ -1,17 +1,17 @@
-pub mod list;
+pub mod utils;
 
-use std::ffi::{OsStr, OsString};
-use std::fmt::{Display, Formatter};
+
+
 use crate::error::InstallerError;
 use crate::{LinuxInstaller, update};
 use clap::Args;
-use tabled::{Style, Table, Tabled};
-use crate::list::list::{InstallTable, UpToDate};
+use tabled::{Style, Table};
+use crate::list::utils::{InstallTable, UpToDate};
 
 #[derive(Args)]
 pub struct ListCommand {}
 
-pub async fn execute(mut app: LinuxInstaller, install: ListCommand) -> Result<(), InstallerError> {
+pub async fn execute(app: LinuxInstaller, _install: ListCommand) -> Result<(), InstallerError> {
     let mut versions = Vec::new();
     for install in app.installs.iter() {
         let datum = update::utils::get_latest_version(&install.config.install_settings).await?;
@@ -28,6 +28,6 @@ pub async fn execute(mut app: LinuxInstaller, install: ListCommand) -> Result<()
             up_to_date,
         })
     }
-    println!("{}", Table::new(&versions).with(Style::ascii()).to_string());
-    return Ok(());
+    println!("{}", Table::new(&versions).with(Style::ascii()));
+    Ok(())
 }

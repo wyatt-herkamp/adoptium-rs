@@ -49,7 +49,6 @@ pub struct ReleaseInformationRequest<'a> {
 
 impl<'a> ReleaseInformationRequest<'a> {
     pub fn apply_defaults(mut self) -> Self {
-        use core::default::Default;
         self.query_params.jvm_impl = Some(Default::default());
         self.query_params.local_system = Some(Default::default());
         self.query_params.project = Some(Default::default());

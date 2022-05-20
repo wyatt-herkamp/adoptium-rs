@@ -6,18 +6,18 @@ use crate::error::InstallerError;
 use crate::install::installer::Installer;
 use crate::{InstallConfig, LinuxInstaller, ADOPTIUM_USER_AGENT};
 use adoptium_api::requests::AdoptiumRequest;
-use adoptium_api::types::SortMethod::Default;
+
 use adoptium_api::types::{
-    AdoptiumJvmImpl, CLib, HeapSize, ImageType, Project, ReleaseType, Sort, SortMethod, SortOrder,
-    SystemProperties, Vendor,
+    AdoptiumJvmImpl, ImageType, ReleaseType, Sort, SortMethod, SortOrder,
+    SystemProperties,
 };
 use adoptium_api::Adoptium;
-use chrono::Utc;
+
 use clap::Args;
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use tokio::fs::read_dir;
+
 use url::Url;
 
 #[derive(Args)]
@@ -59,7 +59,7 @@ pub async fn execute(
     let binary = release.binaries.remove(0);
     let download_link = binary.package.link;
     let size = binary.package.size as u64;
-    let release_name = release.release_name;
+    let _release_name = release.release_name;
     let mut config = InstallConfig {
         install_settings: InstallSettings {
             heap_size: binary.heap_size,
@@ -94,5 +94,5 @@ pub async fn execute(
     installer.update_system(&app.settings.install_method).await?;
     drop(installer);
     app.add_install(config).await?;
-    return Ok(());
+    Ok(())
 }

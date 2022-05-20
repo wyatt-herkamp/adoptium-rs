@@ -24,7 +24,7 @@ pub struct Install {
 
 impl PartialEq<InstallConfig> for Install {
     fn eq(&self, other: &InstallConfig) -> bool {
-        return self.config.to_string().eq(&other.to_string());
+        self.config.to_string().eq(&other.to_string())
     }
 }
 
@@ -62,7 +62,7 @@ impl LinuxInstaller {
                 return true;
             }
         }
-        return false;
+        false
     }
     pub async fn add_install(&mut self, config: InstallConfig) -> Result<(), InstallerError> {
         let parents = get_config_directory().join("installs");

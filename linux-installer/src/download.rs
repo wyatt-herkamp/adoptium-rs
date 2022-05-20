@@ -39,7 +39,7 @@ pub async fn download(url: Url, total_size: u64, location: PathBuf) -> Result<()
         let decoder = GzipDecoder::new(BufReader::new(read));
         let mut archive = Archive::new(decoder);
         archive.unpack(&location).await.unwrap();
-        ()
+        
     });
     let mut stream = source.bytes_stream();
     while let Some(item) = stream.next().await {

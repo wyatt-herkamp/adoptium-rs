@@ -1,9 +1,9 @@
+use std::str::FromStr;
 use crate::types::AdoptiumJvmImpl::HotSpot;
 use crate::types::HeapSize::Normal;
 use serde::Serialize;
 use serde::{Deserialize};
 
-use std::str::FromStr;
 
 use strum_macros::{Display, EnumString};
 
@@ -107,8 +107,8 @@ pub enum ReleaseType {
     #[serde(rename = "ga")]
     #[strum(serialize = "ga")]
     GeneralAvailability,
-    #[serde(rename = "ga")]
-    #[strum(serialize = "ga")]
+    #[serde(rename = "ea")]
+    #[strum(serialize = "ea")]
     EarlyAccess,
 }
 
@@ -144,7 +144,6 @@ pub enum Architecture {
 
 impl Default for Architecture {
     fn default() -> Self {
-        use std::str::FromStr;
         match Architecture::from_str(std::env::consts::ARCH) {
             Ok(value) => value,
             Err(_error) => {
@@ -181,7 +180,6 @@ pub enum SortOrder {
 
 impl Default for OS {
     fn default() -> Self {
-        use std::str::FromStr;
         OS::from_str(std::env::consts::OS).unwrap()
     }
 }

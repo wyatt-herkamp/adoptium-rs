@@ -1,5 +1,5 @@
 use crate::error::InstallerError;
-use crate::{Install, LinuxInstaller, run_command};
+use crate::{LinuxInstaller, run_command};
 use clap::Args;
 use tokio::fs::{remove_dir_all, remove_file};
 use tokio::process::Command;
@@ -55,5 +55,5 @@ pub async fn execute(
         }
     }
 
-    return Ok(());
+    Ok(())
 }

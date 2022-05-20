@@ -1,7 +1,7 @@
 use crate::{InstallConfig, InstallerError, run_command};
 use futures_util::StreamExt;
 use std::path::PathBuf;
-use std::process::{ExitCode, Termination};
+
 use tokio::fs::{create_dir_all, read_dir, remove_dir_all, rename};
 use tokio::process::Command;
 use tokio_stream::wrappers::ReadDirStream;
@@ -24,12 +24,10 @@ impl<'a> Installer<'a> {
         let mut stream = ReadDirStream::new(read_dir(&self.extracted_data).await?);
         while let Some(value) = stream.next().await {
             let entry = value?;
-            if entry.metadata().await?.is_dir() {
-                if entry.path().join("bin").exists() {
-                    self.extracted_data = entry.path();
-                    drop(stream);
-                    break;
-                }
+            if entry.metadata().await?.is_dir() && entry.path().join("bin").exists() {
+                self.extracted_data = entry.path();
+                drop(stream);
+                break;
             }
         }
         Ok(())

@@ -2,7 +2,7 @@ pub mod utils;
 
 use std::env::temp_dir;
 use std::time::SystemTime;
-use chrono::{DateTime, Utc};
+
 use crate::error::InstallerError;
 use crate::{Install, LinuxInstaller};
 use clap::Args;
@@ -12,7 +12,7 @@ use tabled::object::Columns;
 use url::Url;
 use crate::download::download;
 use crate::install::installer::Installer;
-use crate::list::list::{InstallTable, UpToDate};
+use crate::list::utils::{InstallTable, UpToDate};
 use crate::update::utils::get_latest_version;
 
 #[derive(Args)]
@@ -24,7 +24,7 @@ pub struct UpdateCommand {
 }
 
 pub async fn execute(
-    mut app: LinuxInstaller,
+    app: LinuxInstaller,
     value: UpdateCommand,
 ) -> Result<(), InstallerError> {
     if value.list {
@@ -32,13 +32,13 @@ pub async fn execute(
     } else if value.update.is_some() {
         update(app, value).await
     } else {
-        /// HELP!
+        // HELP!
         Ok(())
     }
 }
 
-async fn list_updates(mut app: LinuxInstaller,
-                      install: UpdateCommand) -> Result<(), InstallerError> {
+async fn list_updates(app: LinuxInstaller,
+                      _install: UpdateCommand) -> Result<(), InstallerError> {
     let mut versions = Vec::new();
     for install in app.installs.iter() {
         let datum = get_latest_version(&install.config.install_settings).await?;
@@ -55,8 +55,8 @@ async fn list_updates(mut app: LinuxInstaller,
             up_to_date,
         })
     }
-    println!("{}", Table::new(&versions).with(Style::ascii()).with(Modify::new(Columns::single(3)).with(Format::new(|s| s.red().to_string()))).to_string());
-    return Ok(());
+    println!("{}", Table::new(&versions).with(Style::ascii()).with(Modify::new(Columns::single(3)).with(Format::new(|s| s.red().to_string()))));
+    Ok(())
 }
 
 async fn update(mut app: LinuxInstaller,
