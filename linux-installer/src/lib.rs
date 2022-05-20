@@ -4,6 +4,7 @@ use crate::error::InstallerError;
 use std::path::PathBuf;
 use tokio::fs::OpenOptions;
 use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 
 pub mod config;
 
@@ -78,4 +79,13 @@ impl LinuxInstaller {
         });
         Ok(())
     }
+}
+#[cfg(feature = "mock_commands")]
+async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
+    println!("Imagine Running {:?}", command);
+    Ok(0)
+}
+#[cfg(not(feature = "mock_commands"))]
+async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
+    Ok(command.spawn()?.wait().await?.code().unwrap_or(1) as u8)
 }
