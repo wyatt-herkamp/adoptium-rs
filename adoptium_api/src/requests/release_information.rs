@@ -1,14 +1,14 @@
-use crate::error::{AdoptiumError, IntoResult};
+use std::borrow::Cow;
 use crate::requests::AdoptiumRequest;
 use crate::response::{Package, Source, VersionData};
-use crate::types::SortMethod::Default;
+
 use crate::types::{
     AdoptiumJvmImpl, Architecture, CLib, HeapSize, ImageType, Project, ReleaseType, Sort,
     SystemProperties, Vendor, OS,
 };
 use crate::Adoptium;
-use async_trait::async_trait;
-use serde::de::DeserializeOwned;
+
+
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -19,7 +19,7 @@ impl Adoptium {
         ReleaseInformationRequest {
             client: self,
             feature_version,
-            release_types: None,
+            release_type: None,
             query_params: ReleaseInformationQueryParams::default(),
         }
     }
@@ -43,7 +43,7 @@ pub struct ReleaseInformationQueryParams {
 pub struct ReleaseInformationRequest<'a> {
     pub client: &'a Adoptium,
     pub feature_version: i64,
-    pub release_types: Option<ReleaseType>,
+    pub release_type: Option<Cow<'a, ReleaseType>>,
     pub query_params: ReleaseInformationQueryParams,
 }
 
@@ -59,7 +59,7 @@ impl<'a> ReleaseInformationRequest<'a> {
         self
     }
     pub fn release_type(mut self, release_type: ReleaseType) -> Self {
-        self.release_types = Some(release_type);
+        self.release_type = Some(Cow::Owned(release_type));
         self
     }
     pub fn local_system(mut self, local: SystemProperties) -> Self {
@@ -90,9 +90,8 @@ impl<'a> Display for ReleaseInformationRequest<'a> {
             f,
             "assets/feature_releases/{}/{}?{}",
             self.feature_version,
-            self.release_types
-                .as_ref()
-                .unwrap_or(&ReleaseType::default()),
+            self.release_type
+                .as_ref().unwrap_or(&Cow::Owned(ReleaseType::default())),
             serde_qs::to_string(&self.query_params).unwrap()
         )
     }

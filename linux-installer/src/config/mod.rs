@@ -7,9 +7,9 @@ use adoptium_api::types::{
 use chrono::{DateTime, Utc};
 use core::default::Default;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::fmt::{Display, Formatter};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use tokio::fs::{create_dir_all, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio_stream::wrappers::ReadDirStream;
@@ -23,7 +23,8 @@ pub struct InstallSettings {
     pub vendor: Vendor,
     pub project: Project,
     pub c_lib: Option<CLib>,
-    pub release_types: ReleaseType,
+    pub release_type: ReleaseType,
+    pub feature_version: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -45,6 +46,12 @@ impl Display for InstallConfig {
             self.install_settings.heap_size,
             self.install_settings.jvm_impl
         )
+    }
+}
+
+impl PartialEq<String> for InstallConfig {
+    fn eq(&self, other: &String) -> bool {
+        self.to_string().eq(other)
     }
 }
 

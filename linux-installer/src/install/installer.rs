@@ -1,6 +1,7 @@
-use crate::{Install, InstallConfig, InstallerError};
+use crate::{InstallConfig, InstallerError};
 use futures_util::StreamExt;
 use std::path::PathBuf;
+use std::process::{ExitCode, Termination};
 use tokio::fs::{create_dir_all, read_dir, remove_dir_all, rename};
 use tokio::process::Command;
 use tokio_stream::wrappers::ReadDirStream;
@@ -51,35 +52,36 @@ impl<'a> Installer<'a> {
 
         match install {
             InstallMethod::UpdateAlternatives(value) => {
-                match self.install_data.install_settings.image_type {
+                let paths = match self.install_data.install_settings.image_type {
                     ImageType::JDK => {
-                        for value in &value.jdk_paths {
-                            let path = self.install_data.install_location.join("bin").join(&value.exec_name);
-                            Installer::run_command(
-                                Command::new("update-alternatives").arg("--install").arg(&value.system_path).arg(&value.exec_name).arg(path.as_os_str()).arg("1")).await?;
-                        }
+                        &value.jdk_paths
                     }
                     ImageType::JRE => {
-                        for value in &value.jre_paths {
-                            let path = self.install_data.install_location.join("bin").join(&value.exec_name);
-                            Installer::run_command(
-                                Command::new("update-alternatives").arg("--install").arg(&value.system_path).arg(&value.exec_name).arg(path.as_os_str()).arg("1")).await?;
-                        }
+                        &value.jre_paths
                     }
-                    _ => {}
+                    _ => {
+                        return Ok(());
+                    }
+                };
+                for value in paths {
+                    let path = self.install_data.install_location.join("bin").join(&value.exec_name);
+                    let code = Installer::run_command(
+                        Command::new("update-alternatives").arg("--install").arg(&value.system_path).arg(&value.exec_name).arg(path.as_os_str()).arg("1")).await?;
+                    if code != 0 {
+                        //TODO handle Command Error
+                    }
                 }
             }
         }
         Ok(())
     }
     #[cfg(feature = "mock_commands")]
-    async fn run_command(command: &mut Command) -> Result<(), InstallerError> {
+    async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
         println!("Imagine Running {:?}", command);
-        Ok(())
+        Ok(0)
     }
     #[cfg(not(feature = "mock_commands"))]
-    async fn run_command(command: &mut Command) -> Result<(), InstallerError> {
-        command.spawn()?.wait();
-        Ok(())
+    async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
+        Ok(command.spawn()?.wait().await?.code().unwrap_or(1) as u8)
     }
 }

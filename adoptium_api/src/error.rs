@@ -1,4 +1,4 @@
-use reqwest::{Response, StatusCode};
+use reqwest::{Response};
 use std::num::ParseIntError;
 use std::string::ParseError;
 use thiserror::Error;

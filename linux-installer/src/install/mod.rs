@@ -69,20 +69,26 @@ pub async fn execute(
             vendor: release.vendor,
             project: binary.project,
             c_lib: None,
-            release_types: release.release_type,
+            release_type: release.release_type,
+            feature_version: install.version,
         },
         install_location: PathBuf::new(),
         install_time: SystemTime::now().into(),
         current_version: release.version_data,
     };
+    if app.does_install_exist(&config) {
+        println!("Install Already Exists");
+        return Ok(());
+    }
     config.install_location = app.settings.install_location.join(config.to_string());
+
     let temp_file = temp_dir().join(config.to_string());
     download(
         Url::try_from(download_link.as_ref()).unwrap(),
         size,
         temp_file.clone(),
     )
-    .await?;
+        .await?;
     let mut installer = Installer::new(&config, temp_file);
     installer.find_internal_data().await?;
     installer.move_data().await?;

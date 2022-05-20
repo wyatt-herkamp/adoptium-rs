@@ -1,15 +1,15 @@
 use crate::types::AdoptiumJvmImpl::HotSpot;
 use crate::types::HeapSize::Normal;
 use serde::Serialize;
-use serde::{Deserialize, Deserializer, Serializer};
-use std::fmt::{Display, Formatter};
+use serde::{Deserialize};
+
 use std::str::FromStr;
-use strum::ParseError;
+
 use strum_macros::{Display, EnumString};
 
 #[cfg(feature = "time_converter")]
 pub mod time_converter {
-    const FORMAT: &str = "%Y-%m-%dT%H:%M:%S%:z";
+    pub const FORMAT: &str = "%Y-%m-%dT%H:%M:%S%:z";
 
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{Deserialize, Deserializer, Serializer};
@@ -147,7 +147,7 @@ impl Default for Architecture {
         use std::str::FromStr;
         match Architecture::from_str(std::env::consts::ARCH) {
             Ok(value) => value,
-            Err(error) => {
+            Err(_error) => {
                 panic!("Unsupported Architecture {}", std::env::consts::ARCH)
             }
         }

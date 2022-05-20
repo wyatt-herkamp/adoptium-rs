@@ -1,6 +1,6 @@
 use adoptium_api::error::AdoptiumError;
-use std::num::ParseIntError;
-use std::string::ParseError;
+
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]

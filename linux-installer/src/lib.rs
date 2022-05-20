@@ -1,6 +1,6 @@
 use crate::config::{get_config_directory, InstallConfig, Settings};
 use crate::error::InstallerError;
-use clap::{ArgEnum, PossibleValue};
+
 use std::path::PathBuf;
 use tokio::fs::OpenOptions;
 use tokio::io::AsyncWriteExt;
@@ -30,7 +30,7 @@ impl PartialEq<InstallConfig> for Install {
 impl Install {
     pub async fn update(&mut self) -> Result<(), InstallerError> {
         let mut file = OpenOptions::new()
-            .create_new(true)
+            .create(true)
             .write(true)
             .open(&self.install_file)
             .await?;
@@ -55,9 +55,9 @@ pub struct LinuxInstaller {
 }
 
 impl LinuxInstaller {
-    pub fn does_install_exist(&self, config: InstallConfig) -> bool {
+    pub fn does_install_exist(&self, config: &InstallConfig) -> bool {
         for x in self.installs.iter() {
-            if x.eq(&config) {
+            if x.eq(config) {
                 return true;
             }
         }
@@ -66,7 +66,7 @@ impl LinuxInstaller {
     pub async fn add_install(&mut self, config: InstallConfig) -> Result<(), InstallerError> {
         let install_loc = get_config_directory().join("installs").join(format!("{}.toml", &config));
         let mut file = OpenOptions::new()
-            .create_new(true)
+            .create(true)
             .write(true)
             .open(&install_loc)
             .await?;
