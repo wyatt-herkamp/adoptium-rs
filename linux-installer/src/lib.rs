@@ -84,7 +84,7 @@ impl LinuxInstaller {
         Ok(())
     }
 }
-
+#[cfg(rel)]
 #[cfg(feature = "mock_commands")]
 async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {
     println!("Imagine Running {:?}", command);
