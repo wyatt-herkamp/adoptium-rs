@@ -26,10 +26,9 @@ enum Subcommands {
 
 #[tokio::main]
 async fn main() {
-    if whoami::username().eq("root") {
+    if !whoami::username().eq("root") {
         println!("This applications must be ran as root!");
         return;
-
     }
     let value = AdoptiumClI::parse();
     let option = config::get_settings().await.expect("Unable to load config");

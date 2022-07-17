@@ -25,7 +25,7 @@ clap = { version = "3.1.18", features = ["derive"] }
 tokio = { version = "1.18.2" }
 tokio-stream = { version = "0.1.8", features = ["fs"] }
 log = { version = "0.4.17", features = ["kv_unstable_serde", "kv_unstable_std", "kv_unstable"] }
-nitro_log = { git = "https://github.com/wyatt-herkamp/nitro_log.git", features = ["colored"] }
+nitro_log = { git = "https://github.com/wyatt-herkamp/nitro_log.git" }
 tempfile = "3.3.0"
 async-compression = { version = "0.3.14", features = ["gzip", "tokio"] }
 tokio-tar = "0.3.0"
