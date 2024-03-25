@@ -1,41 +1,24 @@
-use reqwest::{Response};
+use reqwest::Response;
 use std::num::ParseIntError;
-use std::string::ParseError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AdoptiumError {
     #[error("Reqwest had an Error {0}")]
-    ReqwestError(reqwest::Error),
+    ReqwestError(#[from] reqwest::Error),
     #[error("Serde Json Parse Error {0}")]
-    JSONError(serde_json::Error),
+    JSONError(#[from] serde_json::Error),
     #[error("Internal Error {0}")]
     Custom(String),
     #[error("A Bad Response Occurred")]
     BadResponse(Response),
-}
-
-impl From<reqwest::Error> for AdoptiumError {
-    fn from(err: reqwest::Error) -> AdoptiumError {
-        AdoptiumError::ReqwestError(err)
-    }
+    #[error("Invalid URL {0}")]
+    InvalidUrl(#[from] url::ParseError),
 }
 
 impl From<ParseIntError> for AdoptiumError {
     fn from(err: ParseIntError) -> AdoptiumError {
         AdoptiumError::Custom(format!("{}", err))
-    }
-}
-
-impl From<serde_json::Error> for AdoptiumError {
-    fn from(err: serde_json::Error) -> AdoptiumError {
-        AdoptiumError::JSONError(err)
-    }
-}
-
-impl From<ParseError> for AdoptiumError {
-    fn from(err: ParseError) -> AdoptiumError {
-        AdoptiumError::Custom(format!("Unable to parse URL {}", err))
     }
 }
 

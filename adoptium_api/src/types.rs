@@ -1,36 +1,15 @@
-use std::str::FromStr;
 use crate::types::AdoptiumJvmImpl::HotSpot;
 use crate::types::HeapSize::Normal;
+use derive_builder::Builder;
+use serde::Deserialize;
 use serde::Serialize;
-use serde::{Deserialize};
+use std::str::FromStr;
+use strum::EnumIter;
+use strum::IntoEnumIterator;
+use tracing::warn;
 
+use strum::{Display, EnumString};
 
-use strum_macros::{Display, EnumString};
-
-#[cfg(feature = "time_converter")]
-pub mod time_converter {
-    pub const FORMAT: &str = "%Y-%m-%dT%H:%M:%S%:z";
-
-    use chrono::{DateTime, TimeZone, Utc};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}", date.format(FORMAT));
-        serializer.serialize_str(&s)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
 #[serde(rename_all = "lowercase")]
@@ -40,7 +19,7 @@ pub enum CLib {
     GLIBC,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display, Copy)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum AdoptiumJvmImpl {
@@ -84,7 +63,7 @@ impl Default for Project {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display, Copy)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum ImageType {
@@ -102,7 +81,7 @@ impl Default for ImageType {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display, Copy)]
 pub enum ReleaseType {
     #[serde(rename = "ga")]
     #[strum(serialize = "ga")]
@@ -118,14 +97,14 @@ impl Default for ReleaseType {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display, Copy)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum Vendor {
     Eclipse,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, EnumString, Display, Copy, EnumIter)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum Architecture {
@@ -147,6 +126,15 @@ impl Default for Architecture {
         match Architecture::from_str(std::env::consts::ARCH) {
             Ok(value) => value,
             Err(_error) => {
+                let supported_architectures = Architecture::iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                warn!(
+                    "Unsupported Architecture {}. Supported Architectures {supported_architectures}",
+                    std::env::consts::ARCH
+                );
                 panic!("Unsupported Architecture {}", std::env::consts::ARCH)
             }
         }
@@ -190,14 +178,34 @@ pub struct SystemProperties {
     pub architecture: Architecture,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Builder)]
+#[builder(default, setter(into))]
+#[builder(build_fn(
+    private,
+    name = "try_build",
+    error = "::derive_builder::UninitializedFieldError"
+))]
 pub struct Sort {
     pub sort_order: SortOrder,
     pub sort_method: SortMethod,
     pub page: i64,
     pub page_size: i64,
 }
+pub trait WithSort {
+    fn set_sort(&mut self, sort: Sort);
 
+    fn with_sort(&mut self, sort_builder: impl FnOnce(&mut SortBuilder)) -> &mut Self {
+        let mut sort = SortBuilder::default();
+        sort_builder(&mut sort);
+        self.set_sort(sort.build());
+        self
+    }
+}
+impl SortBuilder {
+    pub fn build(&self) -> Sort {
+        self.try_build().expect("Failed to build Sort")
+    }
+}
 impl Default for Sort {
     fn default() -> Self {
         Sort {

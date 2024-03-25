@@ -1,19 +1,22 @@
+#![allow(async_fn_in_trait)]
+
 use crate::config::{get_config_directory, InstallConfig, Settings};
 use crate::error::InstallerError;
 
+use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use tabled::Tabled;
 use tokio::fs::{create_dir_all, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 pub mod config;
 
+pub mod commands;
 pub mod download;
 pub mod error;
-pub mod install;
-pub mod list;
-pub mod uninstall;
-pub mod update;
+pub mod sys;
+pub mod utils;
 
 pub const ADOPTIUM_USER_AGENT: &str = "Adoptium Linux Installer(github.com/wherkamp/adoptium-rs)";
 
@@ -50,12 +53,12 @@ impl From<(PathBuf, InstallConfig)> for Install {
     }
 }
 
-pub struct LinuxInstaller {
+pub struct Installer {
     pub settings: Settings,
     pub installs: Vec<Install>,
 }
 
-impl LinuxInstaller {
+impl Installer {
     pub fn does_install_exist(&self, config: &InstallConfig) -> bool {
         for x in self.installs.iter() {
             if x.eq(config) {
@@ -84,6 +87,34 @@ impl LinuxInstaller {
         Ok(())
     }
 }
+
+#[derive(Tabled)]
+pub struct InstallTable<'a> {
+    pub version: &'a String,
+    pub location: &'a str,
+    pub installed_on: String,
+    pub id: String,
+    pub up_to_date: UpToDate,
+}
+
+pub enum UpToDate {
+    Yes,
+    No(String),
+}
+
+impl Display for UpToDate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UpToDate::Yes => {
+                write!(f, "Yes")
+            }
+            UpToDate::No(value) => {
+                write!(f, "No(Latest: {})", value)
+            }
+        }
+    }
+}
+
 #[cfg(rel)]
 #[cfg(feature = "mock_commands")]
 async fn run_command(command: &mut Command) -> Result<u8, InstallerError> {

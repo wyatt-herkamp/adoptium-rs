@@ -1,15 +1,15 @@
-pub mod installer;
-
 use crate::config::InstallSettings;
 use crate::download::download;
 use crate::error::InstallerError;
-use crate::install::installer::Installer;
-use crate::{InstallConfig, LinuxInstaller, ADOPTIUM_USER_AGENT};
+use crate::sys::SysInstaller;
+use crate::{InstallConfig, Installer, ADOPTIUM_USER_AGENT};
+use adoptium_api::requests::release_information::{
+    ReleaseInformationParams, ReleaseInformationParamsBuilder,
+};
 use adoptium_api::requests::AdoptiumRequest;
 
 use adoptium_api::types::{
-    AdoptiumJvmImpl, ImageType, ReleaseType, Sort, SortMethod, SortOrder,
-    SystemProperties,
+    AdoptiumJvmImpl, ImageType, ReleaseType, SortMethod, SortOrder, SystemProperties, WithSort,
 };
 use adoptium_api::Adoptium;
 
@@ -35,24 +35,32 @@ pub struct InstallCommand {
     /// A Java Version
     pub version: i64,
 }
-
-pub async fn execute(
-    mut app: LinuxInstaller,
-    install: InstallCommand,
-) -> Result<(), InstallerError> {
+impl InstallCommand {
+    pub fn request(&self) -> ReleaseInformationParams {
+        ReleaseInformationParamsBuilder::default()
+            .feature_version(self.version)
+            .release_type(self.release_type.unwrap_or_default())
+            .with_query_builder(|query| {
+                query
+                    .image_type(self.image_type)
+                    .jvm_impl(self.jvm_impl)
+                    .local_system(Some(SystemProperties::default()))
+                    .with_sort(|sort| {
+                        sort.sort_order(SortOrder::Descending)
+                            .sort_method(SortMethod::Default)
+                            .page(0)
+                            .page_size(1);
+                    });
+            })
+            .build()
+            .expect("Failed to build ReleaseInformationParams")
+    }
+}
+pub async fn execute(mut app: Installer, install: InstallCommand) -> Result<(), InstallerError> {
     let adoptium = Adoptium::new(ADOPTIUM_USER_AGENT);
+
     let mut request = adoptium
-        .release_information_request(install.version)
-        .local_system(SystemProperties::default())
-        .image_type(install.image_type.unwrap_or_default())
-        .jvm_impl(install.jvm_impl.unwrap_or_default())
-        .release_type(install.release_type.unwrap_or_default())
-        .sort(Sort {
-            sort_order: SortOrder::Descending,
-            sort_method: SortMethod::Default,
-            page: 0,
-            page_size: 1,
-        })
+        .release_information_request(install.request())
         .execute()
         .await?;
     let mut release = request.remove(0);
@@ -87,11 +95,11 @@ pub async fn execute(
         size,
         temp_file.clone(),
     )
-        .await?;
-    let mut installer = Installer::new(&config, temp_file);
+    .await?;
+    let mut installer = SysInstaller::new(&config, temp_file);
     installer.find_internal_data().await?;
     installer.move_data().await?;
-    installer.update_system(&app.settings.install_method).await?;
+    installer.update_system(&app.settings.system).await?;
     drop(installer);
     app.add_install(config).await?;
     Ok(())

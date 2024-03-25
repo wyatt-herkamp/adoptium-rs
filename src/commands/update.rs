@@ -1,19 +1,16 @@
-pub mod utils;
-
 use std::env::temp_dir;
 use std::time::SystemTime;
 
-use crate::error::InstallerError;
-use crate::{Install, LinuxInstaller};
-use clap::Args;
-use colored::Colorize;
-use tabled::{Format, Modify, Style, Table};
-use tabled::object::Columns;
-use url::Url;
 use crate::download::download;
-use crate::install::installer::Installer;
-use crate::list::utils::{InstallTable, UpToDate};
-use crate::update::utils::get_latest_version;
+use crate::error::InstallerError;
+use crate::sys::SysInstaller;
+use crate::utils::get_latest_version;
+use crate::{Install, InstallTable, Installer, UpToDate};
+use clap::Args;
+
+use tabled::settings::Style;
+use tabled::Table;
+use url::Url;
 
 #[derive(Args)]
 pub struct UpdateCommand {
@@ -23,10 +20,7 @@ pub struct UpdateCommand {
     pub update: Option<String>,
 }
 
-pub async fn execute(
-    app: LinuxInstaller,
-    value: UpdateCommand,
-) -> Result<(), InstallerError> {
+pub async fn execute(app: Installer, value: UpdateCommand) -> Result<(), InstallerError> {
     if value.list {
         list_updates(app, value).await
     } else if value.update.is_some() {
@@ -37,8 +31,7 @@ pub async fn execute(
     }
 }
 
-async fn list_updates(app: LinuxInstaller,
-                      _install: UpdateCommand) -> Result<(), InstallerError> {
+async fn list_updates(app: Installer, _install: UpdateCommand) -> Result<(), InstallerError> {
     let mut versions = Vec::new();
     for install in app.installs.iter() {
         let datum = get_latest_version(&install.config.install_settings).await?;
@@ -49,18 +42,22 @@ async fn list_updates(app: LinuxInstaller,
         };
         versions.push(InstallTable {
             version: &install.config.current_version.semver,
-            location: install.config.install_location.as_os_str().to_str().unwrap(),
-            installed_on: install.config.install_time.format(adoptium_api::types::time_converter::FORMAT).to_string(),
+            location: install
+                .config
+                .install_location
+                .as_os_str()
+                .to_str()
+                .unwrap(),
+            installed_on: install.config.human_date_time().to_string(),
             id: install.config.to_string(),
             up_to_date,
         })
     }
-    println!("{}", Table::new(&versions).with(Style::ascii()).with(Modify::new(Columns::single(3)).with(Format::new(|s| s.red().to_string()))));
+    println!("{}", Table::new(&versions).with(Style::ascii()));
     Ok(())
 }
 
-async fn update(mut app: LinuxInstaller,
-                install: UpdateCommand) -> Result<(), InstallerError> {
+async fn update(mut app: Installer, install: UpdateCommand) -> Result<(), InstallerError> {
     let value = install.update.unwrap();
     if value.eq("all") {
         for install in app.installs.iter_mut() {
@@ -82,10 +79,16 @@ async fn update(mut app: LinuxInstaller,
 async fn update_internal(install: &mut Install) -> Result<(), InstallerError> {
     let datum = get_latest_version(&install.config.install_settings).await?;
     if datum.version_data <= install.config.current_version {
-        println!("{} is already on the latest version {}", &install.config, &datum.version_data.semver);
+        println!(
+            "{} is already on the latest version {}",
+            &install.config, &datum.version_data.semver
+        );
         return Ok(());
     } else {
-        println!("Updating {} to version {}", &install.config, &datum.version_data.semver);
+        println!(
+            "Updating {} to version {}",
+            &install.config, &datum.version_data.semver
+        );
     }
 
     install.config.current_version = datum.version_data;
@@ -98,9 +101,9 @@ async fn update_internal(install: &mut Install) -> Result<(), InstallerError> {
         binary.package.size as u64,
         temp_file.clone(),
     )
-        .await?;
+    .await?;
     println!("Download Complete. Moving Files");
-    let mut installer = Installer::new(&install.config, temp_file);
+    let mut installer = SysInstaller::new(&install.config, temp_file);
     installer.find_internal_data().await?;
     installer.move_data().await?;
     install.update().await?;

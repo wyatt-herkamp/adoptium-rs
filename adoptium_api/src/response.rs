@@ -1,10 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::cmp::Ordering::{Equal, Greater, Less};
 use std::fmt::{Display, Formatter};
-use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use tabled::Tabled;
-
 
 #[derive(Serialize, Deserialize)]
 pub struct Package {
@@ -23,7 +22,6 @@ pub struct Source {
     name: String,
     size: i64,
 }
-
 
 #[cfg_attr(test, derive(Tabled))]
 #[derive(Serialize, Deserialize)]
@@ -62,7 +60,6 @@ impl PartialEq<Self> for VersionData {
 
 impl Eq for VersionData {}
 
-
 impl PartialOrd for VersionData {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -71,7 +68,12 @@ impl PartialOrd for VersionData {
 
 impl Ord for VersionData {
     fn cmp(&self, other: &Self) -> Ordering {
-        let values = vec![(self.major, other.major), (self.minor, other.minor), (self.security, other.security), (self.build, other.build)];
+        let values = vec![
+            (self.major, other.major),
+            (self.minor, other.minor),
+            (self.security, other.security),
+            (self.build, other.build),
+        ];
         for (a, b) in values {
             match a.cmp(&b) {
                 Less => {
@@ -89,16 +91,18 @@ impl Ord for VersionData {
 
 #[cfg(test)]
 pub mod version_test {
-    use tabled::{Style, Table};
     use crate::response::VersionData;
+    use tabled::{settings::Style, Table};
 
     #[test]
     pub fn test() {
-        let mut vec = vec![VersionData::from((8, 0, 1, 5)),
-                           VersionData::from((11, 0, 1, 5)),
-                           VersionData::from((11, 0, 5, 44)),
-                           VersionData::from((5, 5, 1, 5)),
-                           VersionData::from((17, 0, 5, 1))];
+        let mut vec = vec![
+            VersionData::from((8, 0, 1, 5)),
+            VersionData::from((11, 0, 1, 5)),
+            VersionData::from((11, 0, 5, 44)),
+            VersionData::from((5, 5, 1, 5)),
+            VersionData::from((17, 0, 5, 1)),
+        ];
         vec.sort();
         println!("{}", Table::new(&vec).with(Style::ascii()));
     }

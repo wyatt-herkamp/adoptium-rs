@@ -1,12 +1,10 @@
 use adoptiummd::config::{get_installs, save_settings, Settings};
 
-use adoptiummd::{config, install, list, uninstall, update, LinuxInstaller};
+use adoptiummd::{commands::*, Installer};
+use adoptiummd::config;
 use clap::{Parser, Subcommand};
 
 use std::path::PathBuf;
-
-
-
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -37,7 +35,8 @@ async fn main() {
     } else {
         let settings = Settings {
             install_location: PathBuf::from("/").join("usr").join("lib").join("jvm"),
-            install_method: Default::default(),
+            default_version: None,
+            system: Default::default(),
         };
         save_settings(&settings)
             .await
@@ -51,7 +50,7 @@ async fn main() {
         .into_iter()
         .map(|value| value.into())
         .collect();
-    let app = LinuxInstaller {
+    let app = Installer {
         settings: config,
         installs: vec,
     };

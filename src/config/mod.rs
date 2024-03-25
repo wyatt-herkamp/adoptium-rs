@@ -1,15 +1,15 @@
 use crate::error::InstallerError;
+use crate::sys::SysConfig;
 use adoptium_api::response::VersionData;
-use adoptium_api::types::time_converter;
 use adoptium_api::types::{
     AdoptiumJvmImpl, CLib, HeapSize, ImageType, Project, ReleaseType, Vendor,
 };
-use chrono::{DateTime, Utc};
-use core::default::Default;
+use chrono::format::{DelayedFormat, StrftimeItems};
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 use std::fmt::{Display, Formatter};
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use tokio::fs::{create_dir_all, OpenOptions};
 use tokio::io::AsyncWriteExt;
 use tokio_stream::wrappers::ReadDirStream;
@@ -30,10 +30,14 @@ pub struct InstallSettings {
 #[derive(Serialize, Deserialize)]
 pub struct InstallConfig {
     pub install_location: PathBuf,
-    #[serde(with = "time_converter")]
-    pub install_time: DateTime<Utc>,
+    pub install_time: DateTime<Local>,
     pub install_settings: InstallSettings,
     pub current_version: VersionData,
+}
+impl InstallConfig {
+    pub fn human_date_time(&self) -> DelayedFormat<StrftimeItems<'_>> {
+        self.install_time.format("%Y-%m-%d %H:%M")
+    }
 }
 
 impl Display for InstallConfig {
@@ -56,64 +60,16 @@ impl PartialEq<String> for InstallConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", content = "values")]
-pub enum InstallMethod {
-    UpdateAlternatives(UpdateAlternatives),
-}
-
-impl Default for InstallMethod {
-    fn default() -> Self {
-        InstallMethod::UpdateAlternatives(Default::default())
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Settings {
     pub install_location: PathBuf,
-    pub install_method: InstallMethod,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UpdateAlternatives {
-    pub jre_paths: Vec<UpdateAlternativePath>,
-    pub jdk_paths: Vec<UpdateAlternativePath>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UpdateAlternativePath {
-    pub system_path: String,
-    pub exec_name: String,
-}
-
-impl From<(&str, &str)> for UpdateAlternativePath {
-    fn from((sys, internal): (&str, &str)) -> Self {
-        Self {
-            system_path: sys.to_string(),
-            exec_name: internal.to_string(),
-        }
-    }
-}
-
-impl Default for UpdateAlternatives {
-    fn default() -> Self {
-        UpdateAlternatives {
-            jre_paths: vec![("/usr/bin/java", "java").into()],
-            jdk_paths: vec![
-                ("/usr/bin/java", "java").into(),
-                ("/usr/bin/javac", "javac").into(),
-                ("/usr/bin/javadoc", "javadoc").into(),
-                ("/usr/bin/javah", "javah").into(),
-                ("/usr/bin/javap", "javap").into(),
-                ("/usr/bin/javaws", "javaws").into(),
-            ],
-        }
-    }
+    pub default_version: Option<i64>,
+    pub system: SysConfig,
 }
 
 pub fn get_config_directory() -> PathBuf {
     std::env::var("ADOPTIUM_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_|PathBuf::from("/etc").join("adoptium"))
+        .unwrap_or_else(|_| PathBuf::from("/etc").join("adoptium"))
 }
 
 pub async fn get_installs() -> Result<Vec<(PathBuf, InstallConfig)>, InstallerError> {

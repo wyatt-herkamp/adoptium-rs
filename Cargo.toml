@@ -1,5 +1,64 @@
 [workspace]
 resolver = "2"
-members = [
-    "adoptium_api", "linux-installer"
-]
+members = ["adoptium_api"]
+
+[workspace.dependencies]
+semver = { version = "1", features = ["serde"] }
+tracing = { version = "0.1" }
+reqwest = { version = "0.12", features = ["json"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+derive_more = { version = "1.0.0-beta.6", features = ["as_ref", "deref"] }
+derive_builder = "0.20"
+[workspace.package]
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+authors = ["Wyatt Jacob Herkamp <wherkamp@gmail.com>"]
+repository = "https://github.com/wyatt-herkamp/adoptium-rs"
+edition = "2021"
+
+
+[package]
+name = "adoptiummd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+categories = ["command-line-utilities"]
+description = "An Adoptium Linux Installer and Manager"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[[bin]]
+name = "adoptiummd"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+adoptium_api = { path = "./adoptium_api" }
+chrono.workspace = true
+indicatif = "0.17"
+
+colored = "2.0.0"
+whoami = "1.2.1"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1.8", features = ["fs"] }
+tracing.workspace = true
+tempfile = "3.3.0"
+async-compression = { version = "0.4", features = ["gzip", "tokio"] }
+tokio-tar = "0.3.0"
+futures-util = "0.3.21"
+tabled = { version = "0.15", features = ["ansi"] }
+thiserror = "1.0.31"
+reqwest = { version = "0.12", features = ["stream"] }
+# Used for exposing the values for Reqwest
+url = "2.2.2"
+bytes = "1.1.0"
+dirs = "5"
+[features]
+mock_commands = []

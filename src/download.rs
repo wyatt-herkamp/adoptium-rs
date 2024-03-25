@@ -1,11 +1,10 @@
 use crate::{InstallerError, ADOPTIUM_USER_AGENT};
 
-use async_compression::tokio::bufread::{GzipDecoder};
+use async_compression::tokio::bufread::GzipDecoder;
 use bytes::Bytes;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::ClientBuilder;
-
 
 use std::path::PathBuf;
 
@@ -25,7 +24,7 @@ pub async fn download(url: Url, total_size: u64, location: PathBuf) -> Result<()
     create_dir_all(&location).await?;
     let pb = ProgressBar::new(total_size);
     pb.set_style(ProgressStyle::default_bar()
-        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})").expect("Failed to set progress bar style")
         .progress_chars("#>-"));
     let source = client.get(url).send().await?;
     if !source.status().is_success() {
@@ -39,7 +38,6 @@ pub async fn download(url: Url, total_size: u64, location: PathBuf) -> Result<()
         let decoder = GzipDecoder::new(BufReader::new(read));
         let mut archive = Archive::new(decoder);
         archive.unpack(&location).await.unwrap();
-        
     });
     let mut stream = source.bytes_stream();
     while let Some(item) = stream.next().await {

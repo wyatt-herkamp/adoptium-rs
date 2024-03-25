@@ -1,31 +1,70 @@
-use std::borrow::Cow;
+//! Lists of information about builds that match the query
+//! [api.adoptium.net](https://api.adoptium.net/q/swagger-ui/#/Assets/searchReleases)
+//!
 use crate::requests::AdoptiumRequest;
 use crate::response::{Package, Source, VersionData};
+use std::borrow::Cow;
 
 use crate::types::{
     AdoptiumJvmImpl, Architecture, CLib, HeapSize, ImageType, Project, ReleaseType, Sort,
-    SystemProperties, Vendor, OS,
+    SystemProperties, Vendor, WithSort, OS,
 };
 use crate::Adoptium;
 
-
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 
-impl Adoptium {
-    /// Lists of information about builds that match the query
-    /// [api.adoptium.net](https://api.adoptium.net/q/swagger-ui/#/Assets/searchReleases)
-    pub fn release_information_request(&self, feature_version: i64) -> ReleaseInformationRequest {
-        ReleaseInformationRequest {
-            client: self,
-            feature_version,
-            release_type: None,
-            query_params: ReleaseInformationQueryParams::default(),
+#[derive(Clone)]
+pub struct ReleaseInformationRequest {
+    pub client: Adoptium,
+    pub params: ReleaseInformationParams,
+}
+
+#[derive(Debug, Clone, Builder)]
+#[builder(default)]
+pub struct ReleaseInformationParams {
+    pub feature_version: i64,
+    pub release_type: ReleaseType,
+    pub query_params: ReleaseInformationQueryParams,
+}
+impl Default for ReleaseInformationParams {
+    fn default() -> Self {
+        Self {
+            feature_version: 21,
+            release_type: Default::default(),
+            query_params: Default::default(),
         }
     }
 }
+impl From<i64> for ReleaseInformationParams {
+    fn from(feature_version: i64) -> Self {
+        Self {
+            feature_version,
+            ..Default::default()
+        }
+    }
+}
+impl ReleaseInformationParamsBuilder {
+    pub fn with_query_builder(
+        &mut self,
+        query_builder: impl FnOnce(&mut ReleaseInformationQueryParamsBuilder),
+    ) -> &mut Self {
+        let mut query_params = ReleaseInformationQueryParamsBuilder::default();
+        query_builder(&mut query_params);
+        self.query_params(query_params.build());
+        self
+    }
+}
 
-#[derive(Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Default, Builder)]
+#[builder(
+    default,
+    build_fn(
+        private,
+        name = "try_build",
+        error = "::derive_builder::UninitializedFieldError"
+    )
+)]
 pub struct ReleaseInformationQueryParams {
     #[serde(flatten)]
     pub local_system: Option<SystemProperties>,
@@ -38,64 +77,16 @@ pub struct ReleaseInformationQueryParams {
     pub project: Option<Project>,
     pub c_lib: Option<CLib>,
 }
-
-#[derive(Clone)]
-pub struct ReleaseInformationRequest<'a> {
-    pub client: &'a Adoptium,
-    pub feature_version: i64,
-    pub release_type: Option<Cow<'a, ReleaseType>>,
-    pub query_params: ReleaseInformationQueryParams,
-}
-
-impl<'a> ReleaseInformationRequest<'a> {
-    pub fn apply_defaults(mut self) -> Self {
-        self.query_params.jvm_impl = Some(Default::default());
-        self.query_params.local_system = Some(Default::default());
-        self.query_params.project = Some(Default::default());
-        self.query_params.image_type = Some(Default::default());
-        self.query_params.sort = Some(Default::default());
-        self.query_params.heap_size = Some(Default::default());
-        self
-    }
-    pub fn release_type(mut self, release_type: ReleaseType) -> Self {
-        self.release_type = Some(Cow::Owned(release_type));
-        self
-    }
-    pub fn local_system(mut self, local: SystemProperties) -> Self {
-        self.query_params.local_system = Some(local);
-        self
-    }
-    pub fn image_type(mut self, value: ImageType) -> Self {
-        self.query_params.image_type = Some(value);
-        self
-    }
-    pub fn vendor(mut self, value: Vendor) -> Self {
-        self.query_params.vendor = Some(value);
-        self
-    }
-    pub fn jvm_impl(mut self, value: AdoptiumJvmImpl) -> Self {
-        self.query_params.jvm_impl = Some(value);
-        self
-    }
-    pub fn sort(mut self, value: Sort) -> Self {
-        self.query_params.sort = Some(value);
-        self
+impl ReleaseInformationQueryParamsBuilder {
+    pub fn build(&self) -> ReleaseInformationQueryParams {
+        self.try_build().expect("Infallible")
     }
 }
-
-impl<'a> Display for ReleaseInformationRequest<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "assets/feature_releases/{}/{}?{}",
-            self.feature_version,
-            self.release_type
-                .as_ref().unwrap_or(&Cow::Owned(ReleaseType::default())),
-            serde_qs::to_string(&self.query_params).unwrap()
-        )
+impl WithSort for ReleaseInformationQueryParamsBuilder {
+    fn set_sort(&mut self, sort: Sort) {
+        self.sort = Some(Some(sort));
     }
 }
-
 #[derive(Serialize, Deserialize)]
 pub struct ReleaseInformationDatum {
     pub binaries: Vec<Binary>,
@@ -126,8 +117,20 @@ pub struct Binary {
     pub installer: Option<Package>,
 }
 
-impl<'a> AdoptiumRequest<'a, Vec<ReleaseInformationDatum>> for ReleaseInformationRequest<'a> {
-    fn get_client(&self) -> &'a Adoptium {
-        self.client
+impl AdoptiumRequest for ReleaseInformationRequest {
+    type Output = Vec<ReleaseInformationDatum>;
+
+    fn get_client(&self) -> Adoptium {
+        self.client.clone()
+    }
+
+    fn get_url(&self) -> Cow<'_, str> {
+        let url = format!(
+            "assets/feature_releases/{}/{}?{}",
+            self.params.feature_version,
+            self.params.release_type,
+            serde_qs::to_string(&self.params.query_params).unwrap()
+        );
+        Cow::Owned(url)
     }
 }

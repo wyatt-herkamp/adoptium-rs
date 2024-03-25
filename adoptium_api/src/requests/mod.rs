@@ -3,24 +3,33 @@ pub mod release_information;
 use crate::error::{AdoptiumError, IntoResult};
 
 use crate::Adoptium;
-use async_trait::async_trait;
+use reqwest::Url;
 use serde::de::DeserializeOwned;
 
-use std::fmt::{Display};
-use log::trace;
+use std::borrow::Cow;
+use tracing::trace;
 
-#[async_trait]
-pub trait AdoptiumRequest<'a, T: DeserializeOwned>: Display {
-    fn get_client(&self) -> &'a Adoptium;
-    async fn execute(&self) -> Result<T, AdoptiumError> {
-        let string = self.to_string();
-        trace!("Requst URL {}", string);
-        self.get_client()
-            .get(&string)
-            .await?
-            .into_result()?
-            .json()
-            .await
-            .map_err(AdoptiumError::from)
+pub trait AdoptiumRequest {
+    type Output: DeserializeOwned;
+    fn get_client(&self) -> Adoptium;
+
+    fn get_url(&self) -> Cow<'_, str>;
+
+    async fn execute(&self) -> Result<Self::Output, AdoptiumError> {
+        let url = self.get_url();
+        trace!(path=?url, "Making request at URL");
+        let client = self.get_client();
+        let full_url = client.build_url(url.as_ref());
+        trace!(path=?full_url, "Full URL");
+
+        let url = Url::parse(full_url.as_str()).map_err(AdoptiumError::from)?;
+
+        let request = client.client.get(url);
+
+        let response = request.send().await?.into_result()?;
+        trace!(status=?response.status(), "Response Status");
+        let data = response.json::<Self::Output>().await?;
+        Ok(data)
     }
 }
+
